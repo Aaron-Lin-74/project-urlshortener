@@ -28,21 +28,26 @@ app.get('/api/hello', function (req, res) {
 })
 
 app.post('/api/shorturl', function (req, res) {
-  const url = req.body.url
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    hostname = url.slice(url.indexOf('//') + 2)
-    dns.lookup(hostname, (err, address, family) => {
-      if (address !== undefined) {
-        const result = { original_url: url, short_url: short_url++ }
-        dataStore.push(result)
-        console.log(dataStore)
-        res.status(200).json(result)
-      } else {
-        return res.status(400).json({ error: 'invalid url' })
-      }
-    })
+  let url = req.body.url
+  if (/^https?:\/\//i.test(url)) {
+    // if (url.startsWith('http://') || url.startsWith('https://')) {
+    try {
+      let lookupURL = new URL(url)
+      dns.lookup(lookupURL.host, (err, address, family) => {
+        if (address !== undefined) {
+          const result = { original_url: url, short_url: short_url++ }
+          dataStore.push(result)
+          console.log(dataStore)
+          res.status(200).json(result)
+        } else {
+          return res.json({ error: 'invalid url' })
+        }
+      })
+    } catch (e) {
+      return res.json({ error: 'invalid url' })
+    }
   } else {
-    return res.status(400).json({ error: 'invalid url' })
+    return res.json({ error: 'invalid url' })
   }
 })
 
